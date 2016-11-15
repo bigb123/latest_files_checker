@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Script to check latest files in folder and creating symlinks to them in another folder
 #
