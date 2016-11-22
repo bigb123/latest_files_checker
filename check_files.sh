@@ -4,8 +4,7 @@
 #
 #
 # ToDO:
-# - parameters:
-#  - ignore folders
+# - ignore folders
 # - logging to STDOUT, STDERR
 
 # Error codes:
@@ -35,7 +34,7 @@ function usage {
   echo
   echo "Where:"
   echo "  -l path - path to folder with symlinks"
-  echo "  -t time - how old the file can be (in seconds)"
+  echo "  -t time - (optional) how old the file can be (in seconds). Default - about one month"
   echo "  -i path - path to folder or file which will be ignored (can be used multiple times) - to be implemented"
   echo
 }
