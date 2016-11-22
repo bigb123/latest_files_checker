@@ -7,8 +7,13 @@
 # - parameters:
 #  - except folders
 #  - folders to analyze
+# - logging to STDOUT, STDERR
 
-PATH_TO_ANALYZE=$1 # will be array in the future; now probably /usr/local/music
+# Error codes:
+OPT_ERR=1
+UNKNOWN_ERR=255
+
+#PATH_TO_ANALYZE=$1 # will be array in the future; now probably /usr/local/music
 PATH_WITH_SYMLINKS="/usr/local/music/latest/"
 SECONDS_IN_MONTH=2360591 # amount of seconds in star month: 27 days 7 hours 43 minutes and 11 seconds https://en.wikipedia.org/wiki/Lunar_month#Sidereal_month
 
@@ -35,6 +40,7 @@ function good_file_age {
     # file doesn't exist
     echo "$FilePath: File doesn't exist"
     return 2
+  fi
 
   #  difference between current amount of seconds since epoch and file amount of second since epoch since last data modification 
   if [ $(( $(date +%s) - $(stat --printf "%Y" "$FilePath") )) -lt "$SECONDS_IN_MONTH" ]; then 
@@ -54,23 +60,61 @@ function usage {
   echo "Script to check latest files in folder and create symlinks to them in given folder"
   echo 
   echo "Usage:"
-  echo "$0 -l path -t time folder_to_analyze folder_to_analyze2..."
+  echo "$0 -l path [-t time] path_to_folder path_to_folder2..."
   echo
-  echo "-l path - path to folder with symlinks"
-  echo "-t time )in seconds) - how old the file can be"
+  echo "Where:"
+  echo "  -l path - path to folder with symlinks"
+  echo "  -t time (in seconds) - how old the file can be"
+  echo
 }
 
-while getopts ":l:t:"
+
+
+#######    MAIN    #########
+
+if [ $# -eq 0 ]; then
+  usage
+  exit "$OPT_ERR"
+fi
+
+
+while getopts ":l:" optname; do
+  case "$optname" in
+    "l")
+      echo "Path to folder where the links will be stored: $OPTARG"
+    ;;
+    ":")
+      echo "No argument for option $OPTARG"
+      exit "$OPT_ERR"
+    ;;
+    "?")
+      echo "Unknown option"
+      exit "$OPT_ERR"
+    ;;
+    "*")
+      echo "Unknown error"
+      exit "$UNKNOWN_ERR"
+    ;;
+  esac
+done
+
+# all arguments without options on the end of optstring are paths to folder 
+FOLDERS_TO_ANALYZE=("${@:$OPTIND}")
+
+for a in ${FOLDERS_TO_ANALYZE[@]}; do
+  echo "Option $a"
+done
 
 
 # first of all go through all files in PATH_WITH_SYMLINKS and remove old ones
 # explanation: http://stackoverflow.com/questions/18217930/while-ifs-read-r-d-0-file-explanation/18218019 - btw need to understand it
-find "$PATH_WITH_SYMLINKS" -type l -print0  | while IFS= read -r -d $'\0' FilePath ; do
-  good_file_age "$FilePath" || unlink "$PATH_WITH_SYMLINKS/$(basename $FilePath)"
-done
+
+#find "$PATH_WITH_SYMLINKS" -type l -print0  | while IFS= read -r -d $'\0' FilePath ; do
+#  good_file_age "$FilePath" || unlink "$PATH_WITH_SYMLINKS/$(basename $FilePath)"
+#done
 
 # then go through all files in given folder and if file is not too old use create_symlink function
-find "/usr/local/music/deep house" -type f -print0 ! -path "/usr/local/music/latest/*" | while IFS= read -r -d $'\0' FilePath ; do
-  good_file_age "$FilePath" && create_symlink "$FilePath"
-done
+#find "/usr/local/music/deep house" -type f -print0 ! -path "/usr/local/music/latest/*" | while IFS= read -r -d $'\0' FilePath ; do
+#  good_file_age "$FilePath" && create_symlink "$FilePath"
+#done
 
