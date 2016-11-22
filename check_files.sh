@@ -93,7 +93,7 @@ IGNORE_PATHS_AND_FILES=()
 while getopts ":l:t:i:" optname; do
   case "$optname" in
     "l")
-      echo "Path to folder where the links will be stored: $OPTARG"
+      #echo "Path to folder where the links will be stored: $OPTARG"
       # check if last character in path is slash '/'
       # this spaghetti in IF takes last character from OPTARG
       # explanation: http://www.ibm.com/developerworks/library/l-bash-parameters/index.html
