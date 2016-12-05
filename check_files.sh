@@ -17,12 +17,13 @@ unset PATH_WITH_SYMLINKS
 unset FILE_AGE                          
 unset IGNORE_PATHS_AND_FILES # ignore files or files inside paths - to be implemeted
 unset LOGPATH
+unset DEBUGMODE
 
 
 # Constants:
 # default value for how old the file can be
 SECONDS_IN_MONTH=2360591 # amount of seconds in star month: 27 days 7 hours 43 minutes and 11 seconds - https://en.wikipedia.org/wiki/Lunar_month#Sidereal_month
-LOGPATH="$(dirname $(readlink -f $0))/event,log"
+LOGPATH="$(dirname $(readlink -f $0))/event.log" # to be implemented
 
 
 # usage description
@@ -31,12 +32,13 @@ usage () {
   echo "Script to check latest files in folder and create symlinks to them in given folder"
   echo 
   echo "Usage:"
-  echo "$0 -l path [-t time] [-i path] path_to_folder path_to_folder2..."
+  echo "$0 -l path [-t time] [-i path] -d path_to_folder path_to_folder2..."
   echo
   echo "Where:"
   echo "  -l path - path to folder with symlinks"
   echo "  -t time - (optional) how old the file can be (in seconds). Default - about one month"
   echo "  -i path - path to folder or file which will be ignored (can be used multiple times) - to be implemented"
+  echo "  -d      - debug mode - logging everything to STDOUT"
   echo
 }
 
@@ -52,7 +54,9 @@ create_symlink () {
   # if not - create
   if [ ! -h "$PATH_WITH_SYMLINKS/$FileName" ]; then
     ln -s "$FilePath" "$PATH_WITH_SYMLINKS"
-    echo "$FilePath : Symlink created"
+    if [ "$DEBUGMODE" == "true" ]; then 
+      echo "$FilePath : Symlink created"
+    fi
   fi
 }
 
@@ -60,21 +64,29 @@ create_symlink () {
 # checks if file exist and is not too old
 # $1 - file path
 good_file_age () {
+  
   local FilePath="$1"
+  
+  # check if file exists
   if [ ! -e "$FilePath" ]; then
-    # file doesn't exist
-    echo "$FilePath : File doesn't exist"
+    if [ "$DEBUGMODE" == "true" ]; then  
+      echo "$FilePath : File doesn't exist"
+    fi
     return 2
   fi
-
+  
   #  difference between current amount of seconds since epoch and file amount of second since epoch since last data modification 
-  if [ $(( $(date +%s) - $(stat --printf "%Y" "$FilePath") )) -lt "$FILE_AGE" ]; then 
-    # create symlink
-    echo "$FilePath : Age is ok: $(stat --printf "%Y" "$FilePath") max $FILE_AGE"
+  local current_file_age="$(( $(date +%s) - $(stat --printf "%Y" "$FilePath") ))"
+  
+  if [ "$current_file_age" -lt "$FILE_AGE" ]; then 
+    if [ "$DEBUGMODE" == "true" ]; then  
+      echo "$FilePath : Age is ok: $current_file_age max $FILE_AGE"
+    fi
     return 0 
   else
-    # don't create symlink
-    echo "$FilePath : Too old: $(stat --printf "%Y" "$FilePath") max $FILE_AGE"
+    if [ "$DEBUGMODE" == "true" ]; then  
+      echo "$FilePath : Too old: $current_file_age max $FILE_AGE"
+    fi
     return 1
   fi
 }
@@ -90,7 +102,7 @@ main () {
 
   IGNORE_PATHS_AND_FILES=()
 
-  while getopts ":l:t:i:" optname; do
+  while getopts ":l:t:i:d" optname; do
     case "$optname" in
       "l")
         #echo "Path to folder where the links will be stored: $OPTARG"
@@ -104,11 +116,13 @@ main () {
         fi
       ;;
       "t")
-        echo "How old the file can be: $OPTARG"
         FILE_AGE="$OPTARG"
       ;;
       "i")
         IGNORE_PATHS_AND_FILES+="$OPTARG"
+      ;;
+      "d")
+        DEBUGMODE=true
       ;;
       ":")
         echo "ERROR: No argument for option $OPTARG"
@@ -153,18 +167,17 @@ main () {
   FOLDERS_TO_ANALYZE=("${@:$OPTIND}")
 
 
-  # first of all go through all files in PATH_WITH_SYMLINKS and remove old ones
+  # first of all go through all links in PATH_WITH_SYMLINKS and remove old ones
   # IFS explanation: http://stackoverflow.com/questions/18217930/while-ifs-read-r-d-0-file-explanation/18218019
   find "$PATH_WITH_SYMLINKS" -type l -print0  | while IFS= read -r -d $'\0' FilePath ; do
     good_file_age "$FilePath" || ( 
       # had problems with combining basename and unlink commands so forced to creare variable
       filename=$(basename "$FilePath") && unlink "$PATH_WITH_SYMLINKS$filename" 
+      if [ "$DEBUGMODE" == "true" ]; then  
+        echo "Removed link $PATH_WITH_SYMLINKS$filename"
+      fi
     ) 
-    # $(filename=$(basename "$FilePath") ; echo "$PATH_WITH_SYMLINKS$filename")
-    #unlink "$PATH_WITH_SYMLINKS/$(basename $FilePath)"
   done
-
-  #echo "Folders to analyze: ${FOLDERS_TO_ANALYZE[@]}"
 
   # then go through all files in given folder and if file is not too old use create_symlink function
   find "${FOLDERS_TO_ANALYZE[@]}" -type f -print0 ! -path "$PATH_WITH_SYMLINKS/*" | while IFS= read -r -d $'\0' FilePath ; do
@@ -173,7 +186,6 @@ main () {
 }
 
 
-#### Run the program ####
+#### Run the script ####
 
-main
-
+main "$@"
