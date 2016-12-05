@@ -17,7 +17,7 @@ unset PATH_WITH_SYMLINKS
 unset FILE_AGE                          
 unset IGNORE_PATHS_AND_FILES # ignore files or files inside paths - to be implemeted
 unset LOGPATH
-unset DEBUGMODE
+DEBUGMODE=false
 
 
 # Constants:
@@ -54,7 +54,7 @@ create_symlink () {
   # if not - create
   if [ ! -h "$PATH_WITH_SYMLINKS/$FileName" ]; then
     ln -s "$FilePath" "$PATH_WITH_SYMLINKS"
-    if [ "$DEBUGMODE" == "true" ]; then 
+    if $DEBUGMODE; then 
       echo "$FilePath : Symlink created"
     fi
   fi
@@ -69,7 +69,7 @@ good_file_age () {
   
   # check if file exists
   if [ ! -e "$FilePath" ]; then
-    if [ "$DEBUGMODE" == "true" ]; then  
+    if $DEBUGMODE; then  
       echo "$FilePath : File doesn't exist"
     fi
     return 2
@@ -79,12 +79,12 @@ good_file_age () {
   local current_file_age="$(( $(date +%s) - $(stat --printf "%Y" "$FilePath") ))"
   
   if [ "$current_file_age" -lt "$FILE_AGE" ]; then 
-    if [ "$DEBUGMODE" == "true" ]; then  
+    if $DEBUGMODE; then  
       echo "$FilePath : Age is ok: $current_file_age max $FILE_AGE"
     fi
     return 0 
   else
-    if [ "$DEBUGMODE" == "true" ]; then  
+    if $DEBUGMODE; then  
       echo "$FilePath : Too old: $current_file_age max $FILE_AGE"
     fi
     return 1
@@ -173,7 +173,7 @@ main () {
     good_file_age "$FilePath" || ( 
       # had problems with combining basename and unlink commands so forced to creare variable
       filename=$(basename "$FilePath") && unlink "$PATH_WITH_SYMLINKS$filename" 
-      if [ "$DEBUGMODE" == "true" ]; then  
+      if $DEBUGMODE; then  
         echo "Removed link $PATH_WITH_SYMLINKS$filename"
       fi
     ) 
