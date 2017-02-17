@@ -76,7 +76,7 @@ good_file_age () {
   fi
   
   #  difference between current amount of seconds since epoch and file amount of second since epoch since last data modification 
-  local current_file_age="$(( $(date +%s) - $(stat --printf "%Y" "$FilePath") ))"
+  local current_file_age="$(( $(date +%s) - $(stat --printf "%Z" "$FilePath") ))"
   
   if [ "$current_file_age" -lt "$FILE_AGE" ]; then 
     if $DEBUGMODE; then  
